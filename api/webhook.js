@@ -15,7 +15,24 @@ export default {
     }
 
     try {
-      const data = await request.json();
+      const contentType = request.headers.get("content-type") || "";
+
+      let message = "";
+
+      // TradingView có thể gửi JSON hoặc plain text
+      if (contentType.includes("application/json")) {
+        const data = await request.json();
+
+        if (typeof data === "string") {
+          message = data;
+        } else if (data.message) {
+          message = data.message;
+        } else {
+          message = JSON.stringify(data);
+        }
+      } else {
+        message = await request.text();
+      }
 
       const botToken = process.env.BOT_TOKEN;
       const chatId = process.env.CHAT_ID;
@@ -35,8 +52,7 @@ export default {
         );
       }
 
-      const message = data.message || "Test message from Vercel";
-
+      // Gửi message đến Telegram
       const telegramResponse = await fetch(
         `https://api.telegram.org/bot${botToken}/sendMessage`,
         {
